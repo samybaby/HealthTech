@@ -1,58 +1,122 @@
-const express = require('express');
-const app = express();
-const PORT = 3000;
+const express = require('express')
+const app = express()
 
-app.use(express.json());
+const db = require('./db')
 
-const filmes = [
-    {
-        id: 1,
-        nome: "Shrek",
-        genero: "Fantasia",
-    },
-    {
-        id: 2,
-        nome: "A era do Gelo 3",
-        genero: "Animação",
-    },
-    {
-        id: 3,
-        nome: "Velozes e Furiosos",
-        genero: "Ação",
-    },
-    {
-        id: 4,
-        nome: "Shrek",
-        genero: "Fantasia",
-    },
-    {
-        id: 5,
-        nome: "Jumanji",
-        genero: "Aventura",
-    },
-];
+// permite json
+app.use(express.json())
 
-app.get("/", (req, res) => {
-    res.send("API de Filmes")
-});
+// rota inicial
+app.get('/', (req, res) => {
+  res.send("API funcionando")
+})
 
-app.get("/filmes", (req, res) => {
-    res.json(filmes);
-});
+app.get('/pacientes', (req, res) => {
 
-app.get("/filmes/:id", (req, res) => {
-    const idQueFoiPegoNaURL = Number(req.params.id);
-    const filmeEncontrado = filmes.find((filmes) => filmes.id === idQueFoiPegoNaURL);
+  db.all("SELECT * FROM pacientes", [], (erro, dados) => {
 
-    res.json(filmeEncontrado);
-});
+    if (erro) {
+      res.send("Erro ao buscar pacientes")
+    } else {
+      res.json(dados)
+    }
 
-app.post("/filmes", (req, res) => {
+  })
 
-    filmes.push(req.body);
-    res.send("Filme cadastrado com sucesso!")
-});
+})
 
-app.listen( PORT, () => {
-    console.log(`Servidor rodando na porta http://localhost:${PORT}`);
-});
+app.post('/pacientes', (req, res) => {
+
+  let nome = req.body.nome
+  let idade = req.body.idade
+  let endereco = req.body.endereco
+  let observacoes = req.body.observacoes
+
+  db.run(
+    "INSERT INTO pacientes(nome,idade,endereco,observacoes) VALUES (?,?,?,?)",
+    [nome, idade, endereco, observacoes],
+
+    function(erro){
+
+      if (erro) {
+        res.send("Erro ao cadastrar")
+      } else {
+        res.json({
+          mensagem: "Paciente cadastrado",
+          id: this.lastID
+        })
+      }
+
+    }
+  )
+
+})
+
+app.get('/atendimentos', (req, res) => {
+
+  db.all("SELECT * FROM atendimentos", [], (erro, dados) => {
+
+    if (erro) {
+      res.send("Erro")
+    } else {
+      res.json(dados)
+    }
+
+  })
+
+})
+
+app.post('/atendimentos', (req, res) => {
+
+  let paciente_id = req.body.paciente_id
+  let data = req.body.data
+  let pressao = req.body.pressao
+  let alimentacao = req.body.alimentacao
+  let observacoes = req.body.observacoes
+
+  db.run(
+    "INSERT INTO atendimentos(paciente_id,data,pressao,alimentacao,observacoes) VALUES (?,?,?,?,?)",
+    [paciente_id, data, pressao, alimentacao, observacoes],
+
+    function(erro){
+
+      if (erro) {
+        res.send("Erro ao salvar")
+      } else {
+        res.json({
+          mensagem: "Atendimento salvo",
+          id: this.lastID
+        })
+      }
+
+    }
+  )
+
+})
+
+app.get('/historico/:id', (req, res) => {
+
+  let id = req.params.id
+
+  db.all(
+    "SELECT * FROM atendimentos WHERE paciente_id = ?",
+    [id],
+
+    (erro, dados) => {
+
+      if (erro) {
+        res.send("Erro")
+      } else {
+        res.json(dados)
+      }
+
+    }
+  )
+
+})
+
+
+// servidor
+app.listen(3000, () => {
+  console.log("Rodando na porta 3000")
+})
